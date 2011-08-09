@@ -1,4 +1,4 @@
-module Cabal2Nix.Name ( toNixName, libNixName ) where
+module Cabal2Nix.Name ( toNixName, flagNixName, libNixName ) where
 
 import Data.Char
 
@@ -10,6 +10,9 @@ toNixName name    = f name
     f ('-':c:cs) | c `notElem` "-"  = toUpper c : f cs
     f ('-':_)                       = error ("unexpected package name " ++ show name)
     f (c:cs)                        = c : f cs
+
+flagNixName :: String -> String
+flagNixName f = toNixName $ "flag-" ++ map (\ c -> if c == '_' then '-' else c) f
 
 -- | Map libraries to Nix packages.
 -- TODO: This should probably be configurable. We also need to consider the

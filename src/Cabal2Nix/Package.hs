@@ -22,6 +22,7 @@ type PkgDescription   = String
 type PkgLicense       = License
 type PkgIsLib         = Bool
 type PkgIsExe         = Bool
+type PkgFlags         = [Flag]
 type PkgDependencies  = [Dependency] -- [CondTree ConfVar [Dependency] ()]
 type PkgBuildTools    = [Dependency]
 type PkgExtraLibs     = [String]
@@ -37,6 +38,7 @@ data Pkg = Pkg PkgName
                PkgLicense
                PkgIsLib
                PkgIsExe
+               PkgFlags
                PkgDependencies
                PkgBuildTools
                PkgExtraLibs
@@ -51,14 +53,13 @@ prepunctuate p (d:ds) = d : map (p <>) ds
 
 
 showNixPkg :: Pkg -> String
-showNixPkg (Pkg name ver sha256 url desc lic isLib isExe deps
-                tools libs pcs platforms maintainers) =
+showNixPkg (Pkg name ver sha256 url desc lic isLib isExe flags
+                deps tools libs pcs platforms maintainers) =
     render doc
   where
     doc = sep [
             lbrace <+> (fcat $ prepunctuate (comma <> text " ") $
-                        map (nest 2 . text)
-                            ("cabal" : pkgInputs)),
+                        map (nest 2) pkgInputs),
             rbrace <> colon
           ] $$
           vcat [
@@ -96,14 +97,15 @@ showNixPkg (Pkg name ver sha256 url desc lic isLib isExe deps
           ]
     attr n v = text n <+> equals <+> v <> semi
     onlyIf p d = if not (null p) then d else empty
-    boolattr n p v = if p then
-                       attr n (if v then text "true" else text "false")
-                     else empty
+    boolattr n p v = if p then attr n (bool v) else empty
     listattr n vs = onlyIf vs $ sep [
                       text n <+> equals <+> lbrack,
                       nest 2 $ fsep $ map text vs,
                       rbrack <> semi
                     ]
+    bool True  = text "true"
+    bool False = text "false"
+    flag (MkFlag (FlagName n) _ d _) = text (flagNixName n) <+> text "?" <+> bool d
     showVer = hcat (punctuate (text ".") (map int ver))
     pkgLibs       = nub $ sort $ concatMap libNixName libs
     pkgPCs        = nub $ sort $ concatMap libNixName pcs
@@ -111,13 +113,16 @@ showNixPkg (Pkg name ver sha256 url desc lic isLib isExe deps
                     filter (`notElem` (name : corePackages)) $ map unDep deps
     pkgBuildTools = nub $ sort $ map toNixName $
                     filter (`notElem` coreBuildTools) $ map unDep tools
-    pkgInputs     = nub $ pkgLibs ++ pkgPCs ++ pkgBuildTools ++ pkgDeps
+    pkgInputs     = text "cabal" :
+                    (map text $ nub $ pkgLibs ++ pkgPCs ++ pkgBuildTools ++ pkgDeps) ++
+                    map flag flags
 
 
 cabal2nix :: GenericPackageDescription -> PkgSHA256 -> PkgPlatforms -> PkgMaintainers -> Pkg
 cabal2nix cabal sha256 platforms maintainers =
     Pkg pkgname pkgver sha256 url desc lic
       isLib isExe
+      (genPackageFlags cabal)
       (buildDepends tpkg)
       tools
       libs
