@@ -1,4 +1,10 @@
-module Cabal2Nix.Package ( cabal2nix, showNixPkg ) where
+module Cabal2Nix.Package
+  ( cabal2nix, showNixPkg
+  , PkgName, PkgVersion, PkgSHA256, PkgURL, PkgDescription, PkgLicense
+  , PkgIsLib, PkgIsExe, PkgDependencies, PkgBuildTools, PkgExtraLibs
+  , PkgPkgconfigDeps, PkgPlatforms, PkgMaintainers
+  )
+  where
 
 import Data.List
 import Data.Maybe
@@ -13,6 +19,7 @@ import Text.PrettyPrint
 import Cabal2Nix.License
 import Cabal2Nix.Name
 import Cabal2Nix.CorePackages
+import Cabal2Nix.Pretty
 
 type PkgName          = String
 type PkgVersion       = [Int]
@@ -47,29 +54,20 @@ data Pkg = Pkg PkgName
                PkgMaintainers
   deriving (Show)
 
-prepunctuate :: Doc -> [Doc] -> [Doc]
-prepunctuate _ []     = []
-prepunctuate p (d:ds) = d : map (p <>) ds
-
-
 showNixPkg :: Pkg -> String
 showNixPkg (Pkg name ver sha256 url desc lic isLib isExe flags
                 deps tools libs pcs platforms maintainers) =
     render doc
   where
-    doc = sep [
-            lbrace <+> (fcat $ prepunctuate (comma <> text " ") $
-                        map (nest 2) pkgInputs),
-            rbrace <> colon
-          ] $$
+    doc = funargs pkgInputs $$
           vcat [
             text "",
             text "cabal.mkDerivation" <+> lparen <> text "self" <>
               colon <+> lbrace,
             nest 2 $ vcat [
-              attr "pname"   $ doubleQuotes (text name),
-              attr "version" $ doubleQuotes showVer,
-              attr "sha256"  $ doubleQuotes (text sha256),
+              attr "pname"   $ string name,
+              attr "version" $ version ver,
+              attr "sha256"  $ string sha256,
               boolattr "isLibrary"    (not isLib || isExe) isLib,
               boolattr "isExecutable" (not isLib || isExe) isExe,
               listattr "buildDepends"     pkgDeps,
@@ -79,8 +77,8 @@ showNixPkg (Pkg name ver sha256 url desc lic isLib isExe flags
               vcat [
                 text "meta" <+> equals <+> lbrace,
                 nest 2 $ vcat [
-                  onlyIf url  $ attr "homepage"    $ doubleQuotes (text url),
-                  onlyIf desc $ attr "description" $ doubleQuotes (text desc),
+                  onlyIf url  $ attr "homepage"    $ string url,
+                  onlyIf desc $ attr "description" $ string desc,
                   attr "license" $ text (showLic lic),
                   onlyIf platforms $
                     sep [
@@ -95,18 +93,6 @@ showNixPkg (Pkg name ver sha256 url desc lic isLib isExe flags
             rbrace <> rparen,
             text ""
           ]
-    attr n v = text n <+> equals <+> v <> semi
-    onlyIf p d = if not (null p) then d else empty
-    boolattr n p v = if p then attr n (bool v) else empty
-    listattr n vs = onlyIf vs $ sep [
-                      text n <+> equals <+> lbrack,
-                      nest 2 $ fsep $ map text vs,
-                      rbrack <> semi
-                    ]
-    bool True  = text "true"
-    bool False = text "false"
-    flag (MkFlag (FlagName n) _ d _) = text (flagNixName n) <+> text "?" <+> bool d
-    showVer = hcat (punctuate (text ".") (map int ver))
     pkgLibs       = nub $ sort $ concatMap libNixName libs
     pkgPCs        = nub $ sort $ concatMap libNixName pcs
     pkgDeps       = nub $ sort $ map toNixName $
