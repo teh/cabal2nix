@@ -93,6 +93,7 @@ showNixPkg (Pkg name ver sha256 url desc lic isLib isExe flags
             rbrace <> rparen,
             text ""
           ]
+    flag (MkFlag (FlagName n) _ d _) = text (flagNixName n) <+> text "?" <+> bool d
     pkgLibs       = nub $ sort $ concatMap libNixName libs
     pkgPCs        = nub $ sort $ concatMap libNixName pcs
     pkgDeps       = nub $ sort $ map toNixName $
