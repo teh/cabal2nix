@@ -9,7 +9,7 @@ Homepage:               http://github.com/haskell4nix/cabal2nix
 Category:               Distribution
 Synopsis:               Convert Cabal files into Nix build instructions
 Cabal-Version:          >= 1.6
-Build-Type:             Simple
+Build-Type:             Custom
 Tested-With:            GHC == 6.12.3, GHC == 7.0.4
 Description:
   The cabal2nix utility converts Cabal files into Nix build instructions. The
