@@ -19,7 +19,7 @@ main = defaultMainWithHooks simpleUserHooks
 bnfcProgram :: Program
 bnfcProgram = (simpleProgram "BNFC")
   { programFindLocation = \v -> findProgramLocation v "bnfc"
-  , programFindVersion = findProgramVersion "--numeric-version" id
+  , programFindVersion = findProgramVersion "--numeric-version" (\v -> if v == "2.6a\n" then "2.6" else v)
   }
 
 bnfc :: BuildInfo -> LocalBuildInfo -> PreProcessor
