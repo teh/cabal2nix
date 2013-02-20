@@ -26,16 +26,16 @@ bnfc :: BuildInfo -> LocalBuildInfo -> PreProcessor
 bnfc _ lbi = PreProcessor
   { platformIndependent = True
   , runPreProcessor = \(inBaseDir, inRelativeFile) (outBaseDir, outRelativeFile) verbosity -> do
-      (bnfcProg,_,_) <- requireProgramVersion verbosity bnfcProgram (orLaterVersion (Version [2,4,2] [])) (withPrograms lbi)
+      (bnfcProg,_,_) <- requireProgramVersion verbosity bnfcProgram (orLaterVersion (Version [2,6] [])) (withPrograms lbi)
       (happyProg,_,_) <- requireProgramVersion verbosity happyProgram (withinVersion (Version [1] [])) (withPrograms lbi)
-      (alexProg,_,_) <- requireProgramVersion verbosity alexProgram (withinVersion (Version [2] [])) (withPrograms lbi)
+      (alexProg,_,_) <- requireProgramVersion verbosity alexProgram (withinVersion (Version [3] [])) (withPrograms lbi)
       let back   = joinPath (replicate (length (splitDirectories outBaseDir)) "..")
-          scope' = concat (intersperse "." (splitDirectories (takeDirectory outRelativeFile)))
+          scope' = intercalate "." (splitDirectories (takeDirectory outRelativeFile))
           scope  = scope' ++ "." ++ takeFileName (dropExtension outRelativeFile)
       bracket (setCurrentDirectory outBaseDir) (\_ -> setCurrentDirectory back) $ \_ -> do
         rawSystemProgram verbosity bnfcProg
           [ "-haskell"
-          , "-alex2"
+          , "-alex3"
           , "-d"
           , "-p", scope'
           , back </> inBaseDir </> inRelativeFile

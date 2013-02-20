@@ -58,7 +58,7 @@ Executable hackage4nix
   hs-source-dirs:       src
   Build-Depends:        base >= 3 && < 5, Cabal >= 1.8, pretty, filepath, directory, bytestring,
                         regex-posix, mtl, containers, array
-  Build-Tools:          BNFC >= 2.4, happy == 1.*, alex == 2.*
+  Build-Tools:          BNFC >= 2.6, happy == 1.*, alex == 3.*
   Extensions:           PatternGuards
   other-modules:        Cabal2Nix.Pretty
                         Cabal2Nix.License
